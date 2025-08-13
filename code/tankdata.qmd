@@ -26,23 +26,49 @@ library(emmeans)
 ```{r}
 library(readr)
 FTRTANKS <- read_csv("data/Oyster FTR Logbook - Logbook.csv", 
-    col_types = cols(Date = col_character(), 
-        `Probe pH` = col_number(), `Temperature (°C)` = col_number(), 
-        Salinity = col_number(), `API pH` = col_number(), 
-        `Ammonia (ppm)` = col_number(), `Nitrite (ppm)` = col_number(), 
-        `Nitrate (ppm)` = col_number()))
-View(FTRTANKS)
-
-
-library(readr)
-FTRTANKS <- read_csv("data/Oyster FTR Logbook - Logbook.csv", 
     col_types = cols(`Probe pH` = col_number(), 
         `Temperature (°C)` = col_number(), 
         Salinity = col_number(), `API pH` = col_number(), 
         `Ammonia (ppm)` = col_number(), `Nitrite (ppm)` = col_number(), 
         `Nitrate (ppm)` = col_number()))
 View(FTRTANKS)
+
+FTRTANKS$Date <- as.Date(format(as.Date(FTRTANKS$Date), "2025-%m-%d"))
+
 ```
+
+```{r}
+library(readr)
+library(dplyr)
+
+# Define the expected columns and their types
+expected_cols <- cols(
+  `Probe pH` = col_number(),
+  `Temperature (°C)` = col_number(),
+  Salinity = col_number(),
+  `API pH` = col_number(),
+  `Ammonia (ppm)` = col_number(),
+  `Nitrite (ppm)` = col_number(),
+  `Nitrate (ppm)` = col_number()
+)
+
+# Read the CSV
+FTRTANKS <- read_csv(
+  "data/Oyster FTR Logbook - Logbook.csv",
+  col_types = expected_cols,
+  guess_max = 1000  # ensures read_csv looks at more rows for guessing types
+)
+
+# Keep only columns that exist in the file (drop any missing ones)
+existing_cols <- intersect(names(FTRTANKS), names(expected_cols$cols))
+FTRTANKS <- FTRTANKS %>% select(all_of(existing_cols))
+
+# Quick preview
+glimpse(FTRTANKS)
+
+```
+
+
 
 ##right after import
 
@@ -362,6 +388,103 @@ ggplot(nutrients_long, aes(x = Date, y = Concentration, color = Nutrient)) +
     linetype = "Event"
   )
 
+
+```
+
+FULL
+```{r}
+library(lubridate)
+
+# Try multiple common formats
+FTRTANKS$`Date Column Name` <- parse_date_time(
+  FTRTANKS$`Date Column Name`,
+  orders = c("ymd", "mdy", "dmy")
+)
+
+# Check for any failed conversions
+sum(is.na(FTRTANKS$`Date Column Name`))
+
+
+# --- Create events dataframe ---
+events <- FTRTANKS %>%
+  filter((!is.na(`Water change volume (G)`) & `Water change volume (G)` > 0) | 
+           `Feeding?` == "Y") %>%
+  mutate(Event = case_when(
+    `Feeding?` == "Y" ~ "Feeding",
+    `Water change volume (G)` > 0 ~ "Water Change"
+  )) %>%
+  select(Date, Event) %>%
+  distinct()
+
+# --- Pivot only Ammonia & Nitrite to long format & remove NAs ---
+nutrients_long <- FTRTANKS %>%
+  pivot_longer(
+    cols = c(`Ammonia (ppm)`, `Nitrite (ppm)`),
+    names_to = "Nutrient",
+    values_to = "Concentration"
+  ) %>%
+  filter(!is.na(Concentration))
+
+# --- Y positions for event markers ---
+max_y <- max(nutrients_long$Concentration, na.rm = TRUE)
+feed_y <- max_y * 1.05
+water_y <- max_y * 1.10
+
+# --- Feeding events ---
+feeds_only <- events %>%
+  filter(Event == "Feeding", Date %in% nutrients_long$Date) %>%
+  distinct(Date) %>%
+  mutate(y_pos = feed_y)
+
+# --- Water change events ---
+water_only <- events %>%
+  filter(Event == "Water Change", Date %in% nutrients_long$Date) %>%
+  distinct(Date) %>%
+  mutate(y_pos = water_y)
+
+# --- Plot ---
+ggplot(nutrients_long, aes(x = Date, y = Concentration, color = Nutrient)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  # Vertical lines for events
+  geom_vline(
+    data = events %>% filter(Date %in% nutrients_long$Date),
+    aes(xintercept = as.numeric(Date), linetype = Event),
+    color = "black", alpha = 0.7
+  ) +
+  # Feeding dots (red)
+  geom_point(
+    data = feeds_only,
+    aes(x = Date, y = y_pos),
+    color = "red", size = 4
+  ) +
+  geom_text(
+    data = feeds_only,
+    aes(x = Date, y = y_pos, label = "Feed"),
+    vjust = -0.5, color = "red", size = 3
+  ) +
+  # Water change dots (blue)
+  geom_point(
+    data = water_only,
+    aes(x = Date, y = y_pos),
+    color = "blue", size = 4
+  ) +
+  geom_text(
+    data = water_only,
+    aes(x = Date, y = y_pos, label = "Water"),
+    vjust = -0.5, color = "blue", size = 3
+  ) +
+  # Format x-axis dates
+  scale_x_date(date_labels = "%b %d", date_breaks = "1 week") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(
+    title = "Ammonia & Nitrite Concentrations Over Time with Feeding & Water Changes",
+    x = "Date",
+    y = "Concentration (ppm)",
+    color = "Nutrient",
+    linetype = "Event"
+  )
 
 ```
 
