@@ -198,9 +198,10 @@ ggplot(nutrients_long_filtered, aes(x = Date, y = Concentration, color = Nutrien
 ```
 
 ## adding feeding and water changes
-```{r}
-# --- Create events dataframe ---
 
+```{r}
+
+# --- Create events dataframe ---
 events <- FTRTANKS %>%
   filter((!is.na(`Water change volume (G)`) & `Water change volume (G)` > 0) | 
            `Feeding?` == "Y") %>%
@@ -276,4 +277,6 @@ ggplot(nutrients_long, aes(x = Date, y = Concentration, color = Nutrient)) +
     color = "Nutrient",
     linetype = "Event"
   )
+
+
 
