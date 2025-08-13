@@ -1,0 +1,573 @@
+---
+title: "tank data"
+format: html
+editor: visual
+---
+
+## setting up libraries and file source
+```{r}
+setwd("~/Desktop/tank data R")
+
+library(MASS) 
+library(tidyverse)
+library(ggplot2)
+library(readxl)
+library(cowplot)
+library(lme4)
+library(lmerTest)
+library(car)
+library(effects)
+library(emmeans)
+
+```
+
+
+## entering datasheet
+```{r}
+library(readr)
+FTRTANKS <- read_csv("Desktop/tank data R/Oyster FTR Logbook - Logbook.csv", 
+    col_types = cols(Date = col_character(), 
+        `Probe pH` = col_number(), `Temperature (°C)` = col_number(), 
+        Salinity = col_number(), `API pH` = col_number(), 
+        `Ammonia (ppm)` = col_number(), `Nitrite (ppm)` = col_number(), 
+        `Nitrate (ppm)` = col_number()))
+View(Oyster_FTR_Logbook_Logbook)
+
+library(readr)
+FTRTANKS <- read_csv("Oyster FTR Logbook - Logbook.csv", 
+    col_types = cols(`Probe pH` = col_number(), 
+        `Temperature (°C)` = col_number(), 
+        Salinity = col_logical(), `API pH` = col_number(), 
+        `Ammonia (ppm)` = col_number(), `Nitrite (ppm)` = col_number(), 
+        `Nitrate (ppm)` = col_number()))
+View(Oyster_FTR_Logbook_Logbook)
+```
+
+##right after import
+
+```{r}
+# Fix the year and turn into proper Date
+FTRTANKS$Date <- as.Date(format(as.Date(FTRTANKS$Date), "2025-%m-%d"))
+
+
+# pivot longer
+nutrients_long <- pivot_longer(
+  FTRTANKS,
+  cols = c(`Ammonia (ppm)`, `Nitrite (ppm)`, `Nitrate (ppm)`),
+  names_to = "Nutrient",
+  values_to = "Concentration"
+)
+
+# plot with events
+ggplot(nutrients_long, aes(Date, Concentration, color = Nutrient)) +
+  geom_line() +
+  geom_vline(data = events, aes(xintercept = Date, linetype = Event),
+             color = "black", alpha = 0.7) +
+  scale_linetype_manual(values = c("Feeding" = "dotted", "Water Change" = "dashed"))
+
+
+```
+
+
+## plot individual nutrients over time 
+```{r}
+library(ggplot2)
+FTRTANKS_no_na <- FTRTANKS[!is.na(FTRTANKS$`Nitrite (ppm)`), ]
+
+## NA included 
+ggplot(FTRTANKS, aes(x = Date, y = `Nitrite (ppm)`)) +
+  geom_line(color = "steelblue", size = 1) +
+  geom_point(color = "darkred") +
+  labs(
+    title = "Nitrite Levels Over Time",
+    x = "Date",
+    y = "Nitrite (ppm)"
+  ) +
+  theme_minimal()
+
+##no NA
+ggplot(FTRTANKS_no_na, aes(x = Date, y = `Nitrite (ppm)`)) +
+  geom_line(color = "steelblue") +
+  geom_point(color = "darkred") +
+  labs(
+    title = "Nitrite Levels Over Time (Data Only)",
+    x = "Date",
+    y = "Nitrite (ppm)"
+  ) +
+  theme_minimal()
+
+
+##Nitrate
+
+## NA included 
+ggplot(FTRTANKS, aes(x = Date, y = `Nitrate (ppm)`)) +
+  geom_line(color = "steelblue", size = 1) +
+  geom_point(color = "darkred") +
+  labs(
+    title = "Nitrate Levels Over Time",
+    x = "Date",
+    y = "Nitrate (ppm)"
+  ) +
+  theme_minimal()
+
+##no NA 
+ggplot(FTRTANKS_no_na, aes(x = Date, y = `Nitrate (ppm)`)) +
+  geom_line(color = "steelblue") +
+  geom_point(color = "darkred") +
+  labs(
+    title = "Nitrate Levels Over Time (Data Only)",
+    x = "Date",
+    y = "Nitrate (ppm)"
+  ) +
+  theme_minimal()
+
+## Ammonia 
+
+## NA 
+ggplot(FTRTANKS, aes(x = Date, y = `Ammonia (ppm)`)) +
+  geom_line(color = "steelblue", size = 1) +
+  geom_point(color = "darkred") +
+  labs(
+    title = "Ammonia Levels Over Time",
+    x = "Date",
+    y = "Ammonia (ppm)"
+  ) +
+  theme_minimal()
+
+
+# no NA
+ggplot(FTRTANKS_no_na, aes(x = Date, y = `Ammonia (ppm)`)) +
+  geom_line(color = "steelblue") +
+  geom_point(color = "darkred") +
+  labs(
+    title = "Ammonia Levels Over Time (Data Only)",
+    x = "Date",
+    y = "Ammonia (ppm)"
+  ) +
+  theme_minimal()
+
+```
+
+## long format and plot all three 
+```{r}
+library(tidyr)
+library(dplyr)
+
+# Make sure Date is a proper date
+FTRTANKS$Date <- as.Date(FTRTANKS$Date, format = "%m/%d/%Y")  # adjust if needed
+
+# Reshape from wide to long
+nutrients_long <- FTRTANKS %>%
+  pivot_longer(cols = c(`Nitrite (ppm)`, `Nitrate (ppm)`, `Ammonia (ppm)`),
+               names_to = "Nutrient", values_to = "Concentration")
+
+
+library(ggplot2)
+
+ggplot(nutrients_long, aes(x = Date, y = Concentration, color = Nutrient)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  labs(
+    title = "Nutrient Levels Over Time",
+    x = "Date",
+    y = "Concentration (ppm)",
+    color = "Nutrient"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  facet_wrap(~Nutrient)
+
+
+
+
+```
+
+##no nitrate to see smaller trends in AM and Nitrite
+```{r}
+nutrients_long_filtered <- nutrients_long %>%
+  filter(Nutrient != "Nitrate (ppm)")
+
+
+ggplot(nutrients_long_filtered, aes(x = Date, y = Concentration, color = Nutrient)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  labs(
+    title = "Ammonia and Nitrite Over Time",
+    x = "Date",
+    y = "Concentration (ppm)",
+    color = "Nutrient"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+
+## adding feeding and water changes 
+```{r}
+# Example: events recorded separately
+events <- data.frame(
+  Date = as.Date(c("2025-06-01", "2025-06-03", "2025-06-05")),
+  Event = c("Feeding", "Water Change", "Feeding")
+)
+
+
+library(ggplot2)
+
+ggplot(nutrients_long, aes(x = Date, y = Concentration, color = Nutrient)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  
+  # Add vertical lines for events
+  geom_vline(data = events, aes(xintercept = Date, linetype = Event), 
+             color = "black", alpha = 0.7) +
+  
+  # Optional: customize line types
+  scale_linetype_manual(values = c("Feeding" = "dotted", "Water Change" = "dashed")) +
+  
+  labs(
+    title = "Nutrient Concentration Over Time with Feedings and Water Changes",
+    x = "Date",
+    y = "Concentration (ppm)",
+    color = "Nutrient",
+    linetype = "Event"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+
+```{r}
+ggplot(nutrients_long, aes(x = Date, y = Concentration, color = Nutrient)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  
+  # Event lines – define both xintercept and linetype, but move color out of aes()
+  geom_vline(data = events, 
+             aes(xintercept = Date, linetype = Event), 
+             color = "black", alpha = 0.7, show.legend = TRUE) +
+  
+  scale_linetype_manual(values = c("Feeding" = "dotted", "Water Change" = "dashed")) +
+  
+  labs(
+    title = "Nutrient Concentration Over Time with Feedings and Water Changes",
+    x = "Date",
+    y = "Concentration (ppm)",
+    color = "Nutrient",
+    linetype = "Event"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+range(nutrients_long$Date)
+range(events$Date)
+
+ggplot(nutrients_long, aes(x = Date, y = Concentration)) +
+  geom_line() +
+  geom_vline(xintercept = as.Date("2025-06-01"), linetype = "dotted")
+
+ggplot(nutrients_long, aes(x = Date, y = Concentration)) +
+  geom_line() +
+  geom_vline(xintercept = as.Date("2025-06-01"), linetype = "dotted")
+
+
+```
+
+##troubleshooting
+```{r}
+str(nutrients_wide)
+nutrients_wide$Date <- as.Date(nutrients_wide$Date, format = "%Y-%m-%d")
+library(tidyr)
+nutrients_long <- pivot_longer(
+  nutrients_wide,
+  cols = c(Ammonia, Nitrite, Nitrate),
+  names_to = "Nutrient",
+  values_to = "Concentration"
+)
+str(nutrients_long)
+range(nutrients_long$Date)
+
+head(nutrients_wide)
+str(nutrients)
+head(nutrients)
+
+## pivot
+library(tidyr)
+
+nutrients_long <- pivot_longer(
+  nutrients,
+  cols = c(Ammonia, Nitrate, Nitrite),  # replace with actual column names
+  names_to = "Nutrient",
+  values_to = "Concentration"
+)
+```
+
+
+```{r}
+nutrients_long$Date <- as.Date(nutrients_long$Date)
+events$Date         <- as.Date(events$Date)
+
+range(nutrients_long$Date)
+range(events$Date)
+
+events <- full_events(
+  Date  = as.Date(c("2025-06-01", "2025-06-05")),
+  Event = c("Feeding", "Water Change")
+)
+
+ggplot(nutrients_long, aes(x = Date, y = Concentration, color = Nutrient)) +
+  geom_line() +
+  geom_vline(data = test_events,
+             aes(xintercept = Date, linetype = Event),
+             color = "black")
+
+
+print(head(nutrients_long))
+print(head(events))
+
+
+nutrients_long$Date <- as.Date(nutrients_long$Date)
+
+# If year is wrong (e.g. 0025 instead of 2025), fix by replacing year manually
+nutrients_long$Date <- as.Date(format(nutrients_long$Date, "2025-%m-%d"))
+```
+fulls script
+```{r}
+library(readr)
+library(tidyr)
+library(ggplot2)
+
+# --- Load the data ---
+FTRTANKS <- read_csv("Desktop/tank data R/Oyster FTR Logbook - Logbook.csv", 
+                     col_types = cols(Date = col_character(), 
+                                      `Probe pH`          = col_number(), 
+                                      `Temperature (°C)`  = col_number(), 
+                                      Salinity            = col_number(), 
+                                      `API pH`            = col_number(), 
+                                      `Ammonia (ppm)`     = col_number(),
+                                      `Nitrite (ppm)`     = col_number(), 
+                                      `Nitrate (ppm)`     = col_number()))
+
+# --- Fix the Date column year and convert to Date class ---
+FTRTANKS$Date <- as.Date(format(as.Date(FTRTANKS$Date), "2025-%m-%d"))
+
+# --- Pivot into long format for plotting ---
+nutrients_long <- pivot_longer(
+  FTRTANKS,
+  cols = c(`Ammonia (ppm)`, `Nitrite (ppm)`, `Nitrate (ppm)`),
+  names_to = "Nutrient",
+  values_to = "Concentration"
+)
+
+# --- Define your feeding and water-change events ---
+events <- data.frame(
+  Date  = as.Date(c("2025-06-01","2025-06-03","2025-06-05")),
+  Event = c("Feeding","Water Change","Feeding")
+)
+
+# --- Plot with even
+
+```
+
+plotting code ?
+```{r}
+# --- Identify feeding-only events and join to nutrient dataset for plotting ---
+feed_events <- subset(events, Event == "Feeding")
+feeds_on_data <- merge(feed_events, nutrients_long, by = "Date")
+
+ggplot(nutrients_long, aes(x = Date, y = Concentration, color = Nutrient)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  geom_vline(data = events,
+             aes(xintercept = Date, linetype = Event),
+             color = "black", alpha = 0.7) +
+  # ⚠️ NEW: plot a marker at the nutrient concentration on feeding days
+  geom_point(
+    data = feeds_on_data,
+    aes(x = Date, y = Concentration),
+    shape = 21, fill = "red", size = 4, color = "black"
+  ) +
+  scale_linetype_manual(values = c("Feeding" = "dotted", "Water Change" = "dashed")) +
+  labs(title    = "Nutrient Concentration Over Time with Feedings and Water Changes",
+       x        = "Date",
+       y        = "Concentration (ppm)",
+       color    = "Nutrient",
+       linetype = "Event") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+events full 
+```{r}
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# --- Load the data ---
+FTRTANKS <- read_csv("Desktop/tank data R/Oyster FTR Logbook - Logbook.csv", 
+                     col_types = cols(Date = col_character(), 
+                                      `Probe pH`          = col_number(), 
+                                      `Temperature (°C)`  = col_number(), 
+                                      Salinity            = col_number(), 
+                                      `API pH`            = col_number(), 
+                                      `Ammonia (ppm)`     = col_number(),
+                                      `Nitrite (ppm)`     = col_number(), 
+                                      `Nitrate (ppm)`     = col_number()))
+
+# --- Fix the Date column year and convert to Date class ---
+FTRTANKS$Date <- as.Date(format(as.Date(FTRTANKS$Date), "2025-%m-%d"))
+
+# --- Automatically detect events from Feeding? and Water change columns ---
+events <- FTRTANKS %>%
+  dplyr::filter(!is.na(`Feeding?`) | !is.na(`Water change volume (G)`)) %>%
+  dplyr::mutate(Event = dplyr::case_when(
+    !is.na(`Feeding?`) ~ "Feeding",
+    !is.na(`Water change volume (G)`) ~ "Water Change"
+  )) %>%
+  dplyr::select(Date, Event) %>%
+  unique()
+
+# --- Pivot longer format for plotting ---
+nutrients_long <- pivot_longer(
+  FTRTANKS,
+  cols = c(`Ammonia (ppm)`, `Nitrite (ppm)`, `Nitrate (ppm)`),
+  names_to = "Nutrient",
+  values_to = "Concentration"
+)
+
+# --- matches feeding events to nutrient data for on-line marker
+
+
+
+ggplot(nutrients_long, aes(x = Date, y = Concentration, color = Nutrient)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  geom_vline(data = events,
+             aes(xintercept = Date, linetype = Event),
+             color = "black", alpha = 0.7) +
+  # Feeding marker
+  geom_point(
+    data = feeds_on_data,
+    aes(x = Date, y = Concentration),
+    shape = 21, fill = "red", size = 4, color = "black"
+  ) +
+  # << NEW >> Feeding time label
+  geom_text(
+    data = feeds_on_data,
+    aes(x = Date, y = Concentration, label = Time),
+    nudge_y = 0.02 * max(nutrients_long$Concentration, na.rm = TRUE),
+    size = 3, vjust = 0, color = "black"
+  ) +
+  scale_linetype_manual(values = c("Feeding" = "dotted", "Water Change" = "dashed")) +
+  labs(title    = "Nutrient Concentration Over Time with Feedings and Water Changes",
+       x        = "Date",
+       y        = "Concentration (ppm)",
+       color    = "Nutrient",
+       linetype = "Event") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+```
+FULL
+```{r}
+
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# --- Load the data ---
+ library(readr)
+FTRTANKS <- read_csv("Oyster FTR Logbook - Logbook.csv", 
+    col_types = cols(`Probe pH` = col_number(), 
+        `Temperature (°C)` = col_number(), 
+        Salinity = col_logical(), `API pH` = col_number(), 
+        `Ammonia (ppm)` = col_number(), `Nitrite (ppm)` = col_number(), 
+        `Nitrate (ppm)` = col_number()))
+View(Oyster_FTR_Logbook_Logbook)
+
+FTRTANKS$date<-as.Date(FTRTANKS$date)
+
+# --- Fix Date column (correct year) ---
+FTRTANKS$Date <- as.Date(format(as.Date(FTRTANKS$Date), "2025-%m-%d"))
+
+# --- Create events dataframe based on Feeding and Water Change columns ---
+events <- FTRTANKS %>%
+  filter((!is.na(`Water change volume (G)`) & `Water change volume (G)` > 0) | `Feeding?` == "Y") %>%
+  mutate(Event = case_when(
+    `Feeding?` == "Y" ~ "Feeding",
+    `Water change volume (G)` > 0 ~ "Water Change"
+  )) %>%
+  select(Date, Event) %>%
+  distinct()
+
+# --- Pivot nutrients to long format ---
+nutrients_long <- pivot_longer(
+  FTRTANKS,
+  cols = c(`Ammonia (ppm)`, `Nitrite (ppm)`, `Nitrate (ppm)`),
+  names_to = "Nutrient",
+  values_to = "Concentration"
+)
+
+# --- Join feeding events with nutrient data to plot feeding markers ---
+feeds_on_data <- merge(subset(events, Event == "Feeding"), nutrients_long, by = "Date")
+
+# --- Plot ---
+ggplot(nutrients_long, aes(x = Date, y = Concentration, color = Nutrient)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  geom_vline(data = events,
+             aes(xintercept = Date, linetype = Event),
+             color = "black", alpha = 0.7) +
+  geom_point(
+    data = feeds_on_data,
+    aes(x = Date, y = Concentration),
+    shape = 21, fill = "red", size = 4, color = "black"
+  ) +
+  geom_text(
+    data = feeds_on_data,
+    aes(x = Date, y = Concentration, label = Time),
+    nudge_y = 0.02 * max(nutrients_long$Concentration, na.rm = TRUE),
+    size = 3, vjust = 0,)
+
+```
+
+
+```{r}
+# --- Feeding events only ---
+feeds_only <- events %>%
+  filter(Event == "Feeding") %>%
+  select(Date) %>%
+  distinct() %>%
+  left_join(nutrients_long, by = "Date")  # Keep all nutrient rows for those dates
+
+# --- Plot ---
+ggplot(nutrients_long, aes(x = Date, y = Concentration, color = Nutrient)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  geom_vline(data = events,
+             aes(xintercept = Date, linetype = Event),
+             color = "black", alpha = 0.7) +
+  geom_point(
+    data = feeds_only,
+    aes(x = Date, y = Concentration),
+    color = "red", size = 4
+  )
+
+```
+
+
+
+```{r}
+
+```
+
+
+
+
+```{r}
