@@ -122,7 +122,7 @@ Date,Tank,Time,Probe pH,Temperature (°C),Salinity,API pH,Ammonia (ppm),Nitrite 
 5/7/25,Left,15:00,N/A,N/A,27,7.8,0,0,40,MB,,
 5/7/25,Right,,N/A,N/A,28,8.2,0,0,40,MB,,
 5/7/25,Left,16:30,N/A,N/A,27,7.8,0,0,20,MB,,
-5/7/25,Right,,N/A,N/A,27,8.2,0,0,20,MB,10,light
+5/7/25,Right,,N/A,N/A,27,8.2,0,0,20,MB,10,Y
 5/13/25,Left,10:00,N/A,N/A,28,8,0,0,40,MB,,
 5/13/25,Right,,N/A,N/A,27,8.2,0,0,20,MB,,
 5/13/25,Left,11:00,N/A,N/A,28,8,0,0,20,MB,,
@@ -158,7 +158,7 @@ Date,Tank,Time,Probe pH,Temperature (°C),Salinity,API pH,Ammonia (ppm),Nitrite 
 7/1/25,Left,10:00,N/A,11.18,25,7.8,0,0,40,MB,,
 7/1/25,Right,,N/A,10.97,26,8,0,0,40,MB,,
 7/1/25,Left,11:00,N/A,13.04,27,7.8,0,0,20,MB,,
-7/1/25,Right,,N/A,14.41,27,8,0,0,20,MB,25,Y
+7/1/25,Right,,N/A,14.41,27,8,0,9:00,20,MB,25,Y
 7/8/25,Left,10:00,N/A,11.12,26,7.4,0,0.25,40,MB,,
 7/8/25,Right,,N/A,10.9,26,8,0,0,40,MB,,
 7/8/25,Left,11:30,N/A,13.19,27,7.4,0,0.25,40,MB,,
@@ -174,3 +174,9 @@ Date,Tank,Time,Probe pH,Temperature (°C),Salinity,API pH,Ammonia (ppm),Nitrite 
 7/24/25,Right,,N/A,,,,,,,MB,35,Y
 7/30/25,Left,10:00,N/A,11.19,29,7.4,1,1,80,MB,,
 7/30/25,Right,,N/A,11.08,30,7.8,0,0,0,MB,,
+8/7/25,Left,3:00,N/A,11.33,28,7.8,0,1,160,MB,,
+8/7/25,Right,,N/A,11.11,25,7.8,0,0,5,MB,,
+8/7/25,Left,3:45,N/A,31.53,30,7.8,0,0,0,MB,,
+8/7/25,Right,,N/A,11.12,25,N/A,N/A,N/A,N/A,MB,,
+8/12/25,Left,9:00,N/A,11.22,34,8,0,0,0,MB,,
+8/12/25,Right,,N/A,11.17,25,7.8,0,0,10,MB,,

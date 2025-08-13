@@ -32,6 +32,16 @@ FTRTANKS <- read_csv("data/Oyster FTR Logbook - Logbook.csv",
         `Ammonia (ppm)` = col_number(), `Nitrite (ppm)` = col_number(), 
         `Nitrate (ppm)` = col_number()))
 View(FTRTANKS)
+
+
+library(readr)
+FTRTANKS <- read_csv("data/Oyster FTR Logbook - Logbook.csv", 
+    col_types = cols(`Probe pH` = col_number(), 
+        `Temperature (°C)` = col_number(), 
+        Salinity = col_number(), `API pH` = col_number(), 
+        `Ammonia (ppm)` = col_number(), `Nitrite (ppm)` = col_number(), 
+        `Nitrate (ppm)` = col_number()))
+View(FTRTANKS)
 ```
 
 ##right after import
